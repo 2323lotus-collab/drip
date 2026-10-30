@@ -1,0 +1,1085 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>ドリップ気質診断</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 単一カラム。診断中は左に抽出器、右に今の手順。結果は抽出の記録票のように、数値とレポートを縦に並べる。 */
+:root {
+  --bg: #f2f3ef;
+  --surface: #fbfbf8;
+  --fg: #1f1a17;
+  --muted: #6b635d;
+  --line: #d8d9d1;
+  --accent: #1f6f68;
+  --accent-fg: #ffffff;
+  --water: #4f9dc0;
+  --coffee: #5b3a29;
+  --warm: #b9772f;
+  --f-display: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+  --f-body: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151110;
+    --surface: #201a18;
+    --fg: #efe8e1;
+    --muted: #a0958b;
+    --line: #362d29;
+    --accent: #6fc2b8;
+    --accent-fg: #0d1a18;
+    --water: #7cc0dc;
+    --coffee: #8a5a40;
+    --warm: #e0a05a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151110;
+  --surface: #201a18;
+  --fg: #efe8e1;
+  --muted: #a0958b;
+  --line: #362d29;
+  --accent: #6fc2b8;
+  --accent-fg: #0d1a18;
+  --water: #7cc0dc;
+  --coffee: #8a5a40;
+  --warm: #e0a05a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { font-size: clamp(15px, 1vw + 11px, 21px); height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 1rem;
+  line-height: 1.75;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+.screen { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.pages { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.page { display: flex; flex-direction: column; gap: 1.4rem; padding-block: 8px 16px; }
+#result .pages, #intro .pages { padding-bottom: 32px; }
+#intro .page { padding-block: 1.4rem; }
+#intro .page + .page { border-top: 1px solid var(--line); }
+#intro .page:first-child { padding-top: 8px; }
+#result .page { padding-block: 1.8rem; border-top: 1px solid var(--line); }
+#result .page:first-child { border-top: 0; padding-top: 8px; }
+.scrollhint { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); letter-spacing: .06em; }
+.pg-t { font-family: var(--f-mono); font-size: .8rem; letter-spacing: .14em; color: var(--muted); font-weight: 500; }
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1.5rem 2.5rem; align-items: start; }
+.bar { flex: none; display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.bar .btn { min-width: 5.5rem; }
+.bar .btn.block { flex: 1; font-size: 1.1rem; min-height: 54px; }
+
+h1, h2, h3, p, ol, ul, fieldset { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.kicker { font-family: var(--f-mono); font-size: 0.733rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.display { font-family: var(--f-display); font-weight: 400; line-height: 1.25; }
+:focus-visible { outline: 3px solid var(--warm); outline-offset: 3px; }
+
+.btn {
+  font: inherit; font-weight: 700; cursor: pointer;
+  background: var(--accent); color: var(--accent-fg);
+  border: 0; border-radius: 4px; padding: 12px 22px; min-height: 48px;
+}
+.btn.ghost { background: transparent; color: var(--fg); border: 1.5px solid var(--line); }
+.btn.small { min-height: 40px; padding: 8px 14px; font-size: 0.867rem; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* intro */
+.intro-head { display: flex; flex-direction: column; gap: 16px; }
+.intro-head h1 { font-size: clamp(2.1rem, 5.5vw, 4rem); }
+.intro-head > p { max-width: 34em; color: var(--muted); }
+.how { list-style: none; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.how li { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.how .mono { color: var(--warm); font-size: 0.867rem; padding-top: 2px; }
+.note { font-size: 0.833rem; color: var(--muted); max-width: 36em; }
+.kettle { border: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.kettle legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; }
+.chip { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--surface); border-radius: 4px; padding: 10px 12px; cursor: pointer; font-size: 0.933rem; }
+.chip input { accent-color: var(--accent); margin: 0; }
+.chip:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.chip:has(input:focus-visible) { outline: 3px solid var(--warm); outline-offset: 2px; }
+
+/* play */
+.stage { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; overflow-y: auto; }
+.rig { width: 100%; max-width: min(100%, calc(56vh * 0.802)); aspect-ratio: 300 / 374; margin-inline: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab; border-radius: 8px; overflow: hidden; background: #2a2d31; }
+@media (min-width: 700px) and (min-aspect-ratio: 6/5) {
+  .stage { grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: center; gap: 3rem; }
+  .rig { width: auto; height: 72vh; max-width: none; margin: 0; }
+}
+.rig.holding { cursor: grabbing; }
+.rig:focus-visible { outline: 3px solid var(--warm); outline-offset: 4px; }
+.rig svg { width: 100%; height: auto; display: block; }
+#kg { transform: translate(190px, 6px); }
+.rig .flow { stroke: #d9eef9; stroke-width: 4; stroke-linecap: round; fill: none; opacity: 0; stroke-dasharray: 14 5; }
+.rig .drip { stroke: #6b4125; stroke-width: 3; stroke-linecap: round; fill: none; opacity: 0; stroke-dasharray: 3 7; }
+.rig .bloom { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(1); }
+.rig .goal { stroke: #e0a560; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.rig text { font-family: var(--f-mono); font-size: 9px; fill: rgba(255,255,255,.72); }
+.rig text.goal-t { fill: #e8b274; font-family: var(--f-body); font-size: 10px; font-weight: 700; }
+#ripple { fill: none; stroke: #eaf7fd; stroke-width: 1.2; opacity: 0; }
+.rig.pouring .flow { opacity: .92; animation: run .45s linear infinite; }
+.rig.pouring #ripple { opacity: .75; }
+.rig.pouring .drip, .rig.dripping .drip { opacity: 1; animation: run .6s linear infinite; }
+.rig.rising .bloom { animation: rise 7s ease-out forwards; }
+@keyframes run { to { stroke-dashoffset: -19; } }
+@keyframes rise { from { transform: scaleY(1); } to { transform: scaleY(1.9); } }
+
+.say { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.say h2 { font-size: 1.267rem; line-height: 1.5; font-weight: 700; }
+.say .hint { color: var(--muted); font-size: 0.933rem; min-height: 5.5em; }
+.say .hint.warn { color: var(--warm); }
+.pad { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.grabhint { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); letter-spacing: .04em; }
+
+.log { list-style: none; padding: 0; margin-top: 20px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.log li { display: flex; flex-direction: column; gap: 2px; padding: 10px 6px 10px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; }
+.log li b { font-family: var(--f-mono); font-weight: 500; font-size: 0.867rem; color: var(--fg); min-height: 1.5em; }
+.log li[aria-current="step"] { color: var(--warm); border-bottom: 2px solid var(--warm); padding-bottom: 9px; }
+@media (max-width: 440px) { .log { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* result */
+.res-head { display: flex; flex-direction: column; gap: 10px; }
+.res-head .name { font-size: clamp(1.9rem, 5.5vw, 3.6rem); }
+.res-head .catch { font-weight: 700; color: var(--accent); }
+.res-head .one { color: var(--muted); }
+.res-body { max-width: 40em; }
+.sec { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; margin-top: 28px; border-top: 1px solid var(--line); }
+.sec > h3 { font-family: var(--f-mono); font-size: 0.8rem; letter-spacing: .14em; color: var(--muted); font-weight: 500; }
+.radar { width: 100%; max-width: 520px; }
+.radar svg { width: 100%; height: auto; display: block; }
+.radar .ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.radar .spoke { stroke: var(--line); stroke-width: 1; }
+.radar .area { fill: color-mix(in srgb, var(--accent) 26%, transparent); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.radar .dot { fill: var(--accent); }
+.radar text { fill: var(--fg); font-size: 12px; font-family: var(--f-body); }
+.radar text.v { fill: var(--warm); font-family: var(--f-mono); font-size: 11px; }
+.radar text.s { fill: var(--muted); font-size: 10px; }
+.meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.6rem 2.5rem; }
+.m-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; margin-bottom: 8px; }
+.m-head .mono { color: var(--warm); }
+.track { position: relative; height: 8px; background: var(--line); border-radius: 4px; }
+.fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+.tick { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--fg); }
+.m-ends { display: flex; justify-content: space-between; font-size: 0.767rem; color: var(--muted); margin-top: 6px; }
+.m-note { font-size: 0.833rem; color: var(--muted); margin-top: 2px; }
+.vol { width: 100%; }
+.vol svg { width: 100%; height: auto; display: block; }
+.vol text { font-family: var(--f-mono); font-size: 10px; fill: var(--muted); }
+.vol text.g { fill: var(--warm); font-family: var(--f-body); font-weight: 700; }
+.vol .seg { stroke: var(--bg); stroke-width: 1.5; }
+.vol .goal { stroke: var(--warm); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.vol .axis { stroke: var(--line); stroke-width: 1; }
+.legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.867rem; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.total { font-weight: 700; }
+.trait { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.trait .tt { font-size: 0.833rem; color: var(--muted); flex: 1 1 100%; }
+.pill { flex: none; font-family: var(--f-mono); font-size: 0.8rem; border: 1.5px solid var(--accent); color: var(--accent); border-radius: 2px; padding: 0 8px; line-height: 1.7; font-weight: 500; }
+.pill.off { border-color: var(--line); color: var(--muted); }
+.trait p { flex: 1 1 16em; min-width: 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card h4 { margin: 0; font-size: 0.867rem; font-family: var(--f-mono); letter-spacing: .1em; color: var(--muted); font-weight: 500; }
+.card ul { padding-left: 1.2em; margin: 0; }
+.card .adv { font-weight: 700; }
+.rec { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; font-size: 0.867rem; }
+.rec dt { color: var(--muted); }
+.rec dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.imgbox { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.imgbox img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; }
+details { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 20px; }
+summary { cursor: pointer; font-weight: 700; }
+.all { list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; }
+.all li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.933rem; }
+.all li span { color: var(--muted); font-size: 0.833rem; grid-column: 1; }
+.all li em { font-style: normal; font-family: var(--f-mono); font-size: 0.733rem; color: var(--accent-fg); background: var(--accent); padding: 1px 8px; border-radius: 2px; grid-column: 2; grid-row: 1; align-self: start; }
+.hist { list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; font-size: 0.933rem; }
+.hist li { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.hist .mono { color: var(--muted); font-size: 0.8rem; }
+.toast { font-size: 0.867rem; color: var(--accent); min-height: 1.5em; margin-top: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rig.pouring .flow, .rig.pouring .drip, .rig.dripping .drip, .rig.rising .bloom { animation: none; }
+  .rig.rising .bloom { transform: scaleY(1.6); }
+  #kg { transition: none !important; }
+}
+</style>
+
+<main class="app">
+
+  <section id="intro" class="screen" aria-labelledby="t-intro">
+    <div class="pages">
+    <div class="page intro-head">
+    <div class="kicker">Hand drip temperament</div>
+    <h1 id="t-intro" class="display">ドリップ気質診断</h1>
+    <p>お湯を注ぐ長さ、蒸らしをするかどうか、待つ長さ、注いだ量から、あなたの気質を8タイプと8つの軸で見ます。所要時間は2分ほどです。</p>
+    <ol class="how">
+      <li><span class="mono">01</span><span>画面のケトルをつかんで、下へドラッグすると傾いてお湯が出ます。深く傾けるほど勢いよく出て、左右にドラッグすると注ぐ位置が動きます。離すと止まります。</span></li>
+      <li><span class="mono">02</span><span>蒸らしをするか、何回に分けて注ぐか、どれくらい待つかは自由です。サーバーの目盛りを見ながら、1杯分（200ml）を目安に好きなように淹れてください。時計は出ません。</span></li>
+      <li><span class="mono">03</span><span>淹れ終わったら「完了」を押します。蒸らしの有無や待ち時間は、注ぎ方から自動で読み取ります。</span></li>
+    </ol>
+    <p class="scrollhint">下にスクロールして、ケトルを選んでください</p>
+    </div>
+    <div class="page intro-head">
+    <fieldset class="kettle">
+      <legend>いつも使うケトル</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="kettle" value="10" id="k10"><span>細口ポット</span></label>
+        <label class="chip"><input type="radio" name="kettle" value="15" id="k15" checked><span>ふつうのケトル</span></label>
+        <label class="chip"><input type="radio" name="kettle" value="20" id="k20"><span>勢いよく注ぐタイプ</span></label>
+        <label class="chip"><input type="radio" name="kettle" value="15" id="kx"><span>わからない</span></label>
+      </div>
+    </fieldset>
+    <div><button class="btn" id="start" type="button">淹れはじめる</button></div>
+    <p class="note">ケトルを傾けた深さを「注ぐ勢い」、傾けていた時間を「注ぎの長さ」、左右に動かした量を「注ぐ位置の動き」として見ています。湯量は、この2つとケトルの種類から推定します。秒数と湯量の数値は、結果で初めて表示します。娯楽用の診断です。キーボードの場合は、ケトルを選んでスペースキーを押している間注ぎ、矢印キーで傾きと位置を変えます。</p>
+    </div>
+    </div>
+  </section>
+
+  <section id="play" class="screen" hidden aria-label="診断中">
+    <div class="stage">
+      <div class="rig" id="rigbox" role="button" tabindex="0" aria-pressed="false" aria-label="ケトル。つかんで下へドラッグすると傾いてお湯が出ます。左右にドラッグすると注ぐ位置が動きます。キーボードはスペースキーを押している間注ぎ、矢印キーで傾きと位置を変えます。">
+        <svg id="rig" viewBox="0 -34 300 374" aria-hidden="true">
+          <defs>
+            <linearGradient id="bgw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#454950"/><stop offset="1" stop-color="#25282c"/></linearGradient>
+            <linearGradient id="tbl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cacac6"/><stop offset="1" stop-color="#a3a39f"/></linearGradient>
+            <linearGradient id="kbody" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#101012"/><stop offset=".3" stop-color="#3d3e43"/><stop offset=".58" stop-color="#1a1b1e"/><stop offset="1" stop-color="#0d0d0f"/></linearGradient>
+            <radialGradient id="knob" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#b98253"/><stop offset="1" stop-color="#4b2c18"/></radialGradient>
+            <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a06c42"/><stop offset=".5" stop-color="#7b4b29"/><stop offset="1" stop-color="#4f2e18"/></linearGradient>
+            <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8b898"/><stop offset="1" stop-color="#c68b6a"/></linearGradient>
+            <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset=".5" stop-color="#a9bac2" stop-opacity=".08"/><stop offset="1" stop-color="#ffffff" stop-opacity=".22"/></linearGradient>
+            <linearGradient id="paperg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c79a62"/><stop offset=".5" stop-color="#dcb982"/><stop offset="1" stop-color="#b98a52"/></linearGradient>
+            <linearGradient id="bedg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b371e"/><stop offset="1" stop-color="#2c1a0e"/></linearGradient>
+            <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a3d1c"/><stop offset="1" stop-color="#26130a"/></linearGradient>
+            <clipPath id="srv"><polygon points="86,142 154,142 162,160 168,205 158,252 148,264 92,264 82,252 72,205 78,160"/></clipPath>
+          </defs>
+          <rect y="-34" width="300" height="374" fill="url(#bgw)"/>
+          <rect y="296" width="300" height="44" fill="url(#tbl)"/>
+          <g transform="translate(30,50)">
+            <ellipse cx="120" cy="266" rx="64" ry="6" fill="#000" opacity=".28"/>
+            <path d="M163 166 C 197 160 201 206 168 234" fill="none" stroke="#161618" stroke-width="5" stroke-linecap="round"/>
+            <polygon points="86,142 154,142 162,160 168,205 158,252 148,264 92,264 82,252 72,205 78,160" fill="#1b1d20" fill-opacity=".35"/>
+            <g clip-path="url(#srv)"><rect id="liquid" x="72" y="262" width="96" height="0" fill="url(#liq)"/></g>
+            <g fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="1"><path d="M82 252 L120 264 L158 252"/><path d="M72 205 L120 264 L168 205"/><path d="M78 160 L120 264 L162 160"/></g>
+            <polygon points="86,142 154,142 162,160 168,205 158,252 148,264 92,264 82,252 72,205 78,160" fill="url(#glass)" stroke="#fff" stroke-opacity=".4" stroke-width="1.5" stroke-linejoin="round"/>
+            <g stroke="#fff" stroke-opacity=".6" stroke-width="1.2" stroke-linecap="round">
+              <line x1="76.8" y1="168.67" x2="84.8" y2="168.67"/>
+              <line x1="72.2" y1="206" x2="80.2" y2="206"/>
+              <line x1="76.2" y1="224.67" x2="84.2" y2="224.67"/>
+              <line x1="80.2" y1="243.33" x2="88.2" y2="243.33"/>
+            </g>
+            <g>
+              <text x="87.5" y="171.7">250</text>
+              <text x="83" y="209">150</text>
+              <text x="87" y="227.7">100</text>
+              <text x="91" y="246.3">50</text>
+            </g>
+            <line class="goal" x1="74" y1="187.33" x2="166" y2="187.33"/>
+            <text class="goal-t" x="68" y="190.5" text-anchor="end">1杯分</text>
+            <ellipse cx="120" cy="136" rx="66" ry="9" fill="#4d2f1a"/>
+            <path d="M54 136 A66 9 0 0 0 186 136 L186 142 A66 9 0 0 1 54 142 Z" fill="url(#wood)"/>
+            <ellipse cx="120" cy="134" rx="66" ry="9" fill="#8d5c37"/>
+            <ellipse cx="120" cy="133" rx="31" ry="4.6" fill="#24150b"/>
+            <polygon points="58,66 182,66 150,124 90,124" fill="url(#paperg)"/>
+            <g stroke="#7b5126" stroke-opacity=".35" stroke-width="1"><path d="M120 66 L120 124"/><path d="M88 66 L104 124"/><path d="M152 66 L136 124"/></g>
+            <ellipse id="bloom" class="bloom" cx="120" cy="77" rx="54" ry="7" fill="url(#bedg)"/>
+            <path id="drip" class="drip" d="M120 128 V 190"/>
+            <path id="flow" class="flow" d="M117 18 V 74"/>
+            <ellipse id="ripple" cx="120" cy="75" rx="4" ry="1.6"/>
+            <polygon points="54,62 186,62 152,128 88,128" fill="url(#glass)" stroke="#fff" stroke-opacity=".38" stroke-width="1.5" stroke-linejoin="round"/>
+            <g fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.2">
+              <path d="M64 62 Q 83 98 94 128"/><path d="M88 62 Q 100 98 104 128"/><path d="M112 62 Q 118 98 116 128"/><path d="M136 62 Q 136 98 128 128"/><path d="M160 62 Q 154 98 140 128"/>
+            </g>
+            <path d="M58 64 L 88 126" stroke="#fff" stroke-opacity=".4" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <line x1="52" y1="62" x2="188" y2="62" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
+            <g id="kg">
+              <path d="M-27 18 C -46 18 -42 0 -58 0 C -70 0 -78 4 -82 12" fill="none" stroke="#0d0d0f" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M-27 16.6 C -46 16.6 -42 -1.4 -58 -1.4 C -70 -1.4 -77 2.6 -81 10" fill="none" stroke="#6a6c72" stroke-opacity=".6" stroke-width="1" stroke-linecap="round"/>
+              <path d="M27 -14 C 40 -16 46 -20 52 -24" fill="none" stroke="#0d0d0f" stroke-width="8" stroke-linecap="round"/>
+              <path d="M50 -24 L 82 -38" fill="none" stroke="#6f4326" stroke-width="13" stroke-linecap="round"/>
+              <path d="M50 -28.5 L 82 -42.5" fill="none" stroke="#a97a4f" stroke-width="2.6" stroke-linecap="round"/>
+              <rect x="-28" y="-22" width="56" height="48" rx="7" fill="url(#kbody)"/>
+              <path d="M-21 -14 L -21 20" stroke="#fff" stroke-opacity=".12" stroke-width="3" stroke-linecap="round"/>
+              <rect x="-26" y="-29" width="52" height="9" rx="4" fill="#19191b"/>
+              <rect x="-3.5" y="-36" width="7" height="8" fill="#2a2a2d"/>
+              <circle cx="0" cy="-41" r="7" fill="url(#knob)"/>
+              <path d="M47 -38 L 74 -50 C 96 -60 124 -66 142 -58 L 148 -22 C 126 -14 100 -22 84 -28 Z" fill="url(#skin)" stroke="#a9704f" stroke-opacity=".5" stroke-width=".8"/>
+              <g fill="url(#skin)" stroke="#a9704f" stroke-opacity=".6" stroke-width=".8">
+                <rect x="-4.25" y="-13" width="8.5" height="26" rx="4.25" transform="translate(54.7,-25.3) rotate(-25)"/>
+                <rect x="-4.25" y="-13" width="8.5" height="26" rx="4.25" transform="translate(62,-28.7) rotate(-25)"/>
+                <rect x="-4.25" y="-13" width="8.5" height="26" rx="4.25" transform="translate(69.2,-32) rotate(-25)"/>
+                <rect x="-4.25" y="-13" width="8.5" height="26" rx="4.25" transform="translate(76.5,-35.4) rotate(-25)"/>
+              </g>
+              <ellipse cx="60" cy="-19" rx="10" ry="4.6" transform="rotate(-25 60 -19)" fill="url(#skin)" stroke="#a9704f" stroke-opacity=".6" stroke-width=".8"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="say">
+        <h2 id="head">好きなように淹れてください</h2>
+        <p class="hint" id="hint" aria-live="polite"></p>
+        <p class="grabhint">下へドラッグで傾ける / 左右で注ぐ位置</p>
+      </div>
+    </div>
+    <nav class="bar"><button class="btn block" id="done" type="button" disabled>完了</button></nav>
+  </section>
+
+  <section id="result" class="screen" hidden aria-label="診断結果"></section>
+
+</main>
+
+<script>
+(function () {
+  // CLASSIFY-START
+  var C = {
+    PACE_T: 2.0, WAIT_T: 10, CV_T: 0.25,
+    TARGET: 200, CAP: 300,
+    BLOOM_LO: 20, BLOOM_HI: 45,
+    DIFF_T: 0.15, PREC_A: 0.10, PREC_B: 0.25,
+    WAIT_LO: 10, WAIT_HI: 30,
+    GAP_T: 1.0, TREND_T: 0.4,
+    FORCE_LO: 0.45, FORCE_HI: 0.75,
+    WANDER_LO: 0.12, WANDER_HI: 0.4,
+    BLOOM_MAX: 60, BLOOM_GAP: 4, COUNT_LO: 2, COUNT_HI: 4
+  };
+  function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+  function sum(a) { var s = 0; for (var i = 0; i < a.length; i++) { s += a[i]; } return s; }
+  // events: [{ t0, t1, sec, ml, force }] 注ぎの記録（時刻はミリ秒）。最初の注ぎが少量で、そのあと一定時間あけた場合を蒸らしとみなす。
+  function derive(ev) {
+    var n = ev.length, gapsAll = [], i;
+    for (i = 0; i < n - 1; i++) { gapsAll.push(Math.min(60, Math.max(0, (ev[i + 1].t0 - ev[i].t1) / 1000))); }
+    var bloomed = n >= 2 && ev[0].ml <= C.BLOOM_MAX && gapsAll[0] >= C.BLOOM_GAP;
+    var main = bloomed ? ev.slice(1) : ev;
+    return {
+      skipped: !bloomed,
+      bloom: bloomed ? ev[0].sec : 0,
+      bloomMl: bloomed ? ev[0].ml : 0,
+      wait: bloomed ? gapsAll[0] : 0,
+      pours: main.map(function (e) { return e.sec; }),
+      poursMl: main.map(function (e) { return e.ml; }),
+      forces: main.map(function (e) { return e.force; }),
+      gaps: bloomed ? gapsAll.slice(1) : gapsAll
+    };
+  }
+  // d: { bloom, skipped, wait, pours[], gaps[], flow }
+  function classify(d) {
+    var n = d.pours.length;
+    var mean = sum(d.pours) / n;
+    var sd = Math.sqrt(sum(d.pours.map(function (p) { return (p - mean) * (p - mean); })) / n);
+    var cv = sd / mean;
+    var gapMean = d.gaps.length ? sum(d.gaps) / d.gaps.length : 0;
+    var half = Math.floor(n / 2);
+    var trend = half >= 1 ? Math.round((sum(d.pours.slice(n - half)) / half - sum(d.pours.slice(0, half)) / half) * 1000) / 1000 : 0;
+    var bloomMl = d.skipped ? 0 : (d.bloomMl != null ? d.bloomMl : d.bloom * d.flow);
+    var poursMl = d.poursMl ? d.poursMl.slice() : d.pours.map(function (p) { return p * d.flow; });
+    var force = (d.forces && d.forces.length) ? sum(d.forces) / d.forces.length : null;
+    var L = force === null ? -1 : (force < C.FORCE_LO ? 0 : (force < C.FORCE_HI ? 1 : 2));
+    var wander = d.wander != null ? d.wander : 0;
+    var N = wander < C.WANDER_LO ? 0 : (wander < C.WANDER_HI ? 1 : 2);
+    var mainMl = sum(poursMl);
+    var totalMl = bloomMl + mainMl;
+    var diff = (totalMl - C.TARGET) / C.TARGET;
+    var ad = Math.abs(diff);
+    var longPour = mean >= C.PACE_T;
+    var longWait = !d.skipped && d.wait >= C.WAIT_T;
+    var steady = cv < C.CV_T;
+    var idx = (longPour ? 4 : 0) + (longWait ? 2 : 0) + (steady ? 1 : 0);
+    var G = d.skipped ? 0 : 1;
+    var H = d.skipped ? -1 : (bloomMl < C.BLOOM_LO ? 0 : (bloomMl <= C.BLOOM_HI ? 1 : 2));
+    var I = diff < -C.DIFF_T ? 0 : (diff <= C.DIFF_T ? 1 : 2);
+    var J = ad < C.PREC_A ? 0 : (ad < C.PREC_B ? 1 : 2);
+    var K = d.skipped ? -1 : (d.wait < C.WAIT_LO ? 0 : (d.wait < C.WAIT_HI ? 1 : 2));
+    var E = d.gaps.length === 0 ? -1 : (gapMean >= C.GAP_T ? 1 : 0);
+    var O = n <= C.COUNT_LO ? 0 : (n <= C.COUNT_HI ? 1 : 2);
+    var F = n < 2 ? -1 : (trend >= C.TREND_T ? 2 : (trend <= -C.TREND_T ? 0 : 1));
+    var axes = {
+      pace: clamp01((mean - 0.5) / 3.5),
+      patience: d.skipped ? 0 : clamp01(d.wait / 40),
+      stability: clamp01(1 - cv / 0.6),
+      gap: clamp01((gapMean - 0.3) / 2.7),
+      bold: d.skipped ? 0 : clamp01(bloomMl / 60),
+      generous: clamp01((totalMl - 100) / 200),
+      precise: clamp01(1 - ad / 0.5),
+      move: clamp01(wander / 0.6)
+    };
+    return { mean: mean, cv: cv, gapMean: gapMean, trend: trend, bloomMl: bloomMl, poursMl: poursMl,
+             mainMl: mainMl, totalMl: totalMl, diff: diff, longPour: longPour, longWait: longWait,
+             steady: steady, idx: idx, force: force, L: L, N: N, O: O, count: n, wait: d.skipped ? 0 : d.wait, wander: wander, G: G, H: H, I: I, J: J, K: K, E: E, F: F, axes: axes };
+  }
+  // CLASSIFY-END
+
+  if (typeof document === 'undefined') { return; }
+
+  var TYPES = [
+    { name: '直感エスプレッソ型', tag: '短く・早め・ばらつく', catchy: 'ひらめきで注ぐ瞬発力タイプ',
+      one: '考えるより先に動いて、気分をそのまま味にする人。',
+      A: '注ぎは短く、考えるより先に手が動くタイプです。毎回の量にはばらつきが出ますが、その日の気分がそのまま味になるのが魅力です。',
+      B: '待つ時間はあまり取らず、思い立ったらすぐ次へ進みます。',
+      N: '手順を踏むより先に、まず注いでみるタイプです。',
+      scenes: ['ひらめきで動き出しが早く、急な変更にも強いです。確認の抜けだけ気をつけると頼れる存在になります。',
+               '誘われたらその場で決めるフットワークの軽さがあります。ノリの良さで場を動かす人です。',
+               '気持ちが動いたらすぐ伝えるタイプです。熱しやすく、勢いが相手に伝わります。',
+               '予定を詰めず、思いついた場所へ出かけるのが合います。'],
+      str: ['決断と行動が早い', '場の空気を軽くする', '変化に強い'],
+      cau: ['確認が抜けやすい', '気分で味が変わる'],
+      adv: '今日は、出す前に10秒だけ見直してみてください。',
+      cup: '苦みのはっきりした深煎り。多少ブレても輪郭が残ります。' },
+    { name: 'キレ味ケニア型', tag: '短く・早め・そろう', catchy: '手際で勝負する効率タイプ',
+      one: '手早く、毎回同じに仕上げる、段取りの達人。',
+      A: '注ぎは短く、毎回ほぼ同じ長さにそろいます。段取りが頭に入っていて、迷う時間がありません。',
+      B: '待ちも短く、仕事も同じ調子で進めていそうです。',
+      N: '手順を絞って、必要なことだけを素早く片づけるタイプです。',
+      scenes: ['段取りと再現性が武器で、締め切りを守る人です。ひとりで完結させる仕事が得意です。',
+               '約束の時間を守り、話も要点をつかんで早いです。頼まれごとを手際よくこなします。',
+               '好意は態度で素直に示します。相手のペースを待つ余裕を少し足すと安定します。',
+               '計画を立てて効率よく回る一日が合います。空き時間は詰めすぎないのがコツです。'],
+      str: ['段取りがうまい', '再現性が高い', '時間を守る'],
+      cau: ['余白が少なくなりやすい', '急かして見えることがある'],
+      adv: '今日は一つだけ、急がず相手の返事を待ってみてください。',
+      cup: '酸味のきれいな浅煎り。手早さと再現性が活きます。' },
+    { name: '気まぐれジャワ型', tag: '短く・じっくり・ばらつく', catchy: '慎重さと気分が同居するタイプ',
+      one: '慎重に見えて、本番は気分で舵を切る人。',
+      A: '注ぎは短めですが、毎回の量は気分で変わります。決めるところと流すところを、自分で分けています。',
+      B: '蒸らしではしっかり待つ慎重さもあり、慎重さと気分が同居しています。',
+      N: '',
+      scenes: ['慎重に準備しつつ、本番は柔軟に対応できます。方針がぶれたときは、理由を共有すると伝わりやすいです。',
+               '距離の取り方に慎重ですが、仲良くなるとその日の気分で素の顔を見せます。',
+               'じっくり見極めてから動きます。気分の波は、先に一言伝えておくと誤解されません。',
+               '予定は決めすぎず、その日の気分で動ける余白があると楽しめます。'],
+      str: ['慎重さと柔軟さの両立', '状況を見て動ける', '気分の切り替えが早い'],
+      cau: ['方針が見えにくくなる', '気分の波が周囲に伝わる'],
+      adv: '今日は、決めたことを一つだけ誰かに話してみてください。',
+      cup: '中煎りのバランス型。その日の湯量差を受け止めてくれます。' },
+    { name: '見極めコロンビア型', tag: '短く・じっくり・そろう', catchy: 'メリハリで淹れる堅実タイプ',
+      one: '待つ時と動く時を見極める、調整上手。',
+      A: '注ぐときは軽やかで、量もそろっています。判断の速さが目立ちます。',
+      B: '待つべきところはきちんと待てるので、周りから任される場面が多いはずです。',
+      N: '',
+      scenes: ['待つ判断と動く判断の切り替えがうまく、調整役を任されやすいです。長く信頼を積む人です。',
+               '聞き役にも話し役にもなれて、場のバランスをとります。相談を受けることが多いはずです。',
+               '相手のペースを見ながら、必要なときに動けます。安心感を与えるタイプです。',
+               '決めるところは決めて、あとは流す。そんな過ごし方が合います。'],
+      str: ['メリハリがある', '判断が安定している', '信頼されやすい'],
+      cau: ['慎重に見られやすい', '頼まれごとが集まりやすい'],
+      adv: '今日は、頼まれごとを一つ断ってみてください。',
+      cup: '中煎りのすっきり系。毎日飲んでも飽きません。' },
+    { name: 'のびのびマンデリン型', tag: '長く・早め・ばらつく', catchy: 'たっぷり注ぐ自由人タイプ',
+      one: '迷わず大きく注いで、勢いで進める人。',
+      A: '一回の注ぎはたっぷりで、量にはばらつきがあっても気にしません。細部よりも、まずやってみる勢いを大事にしています。',
+      B: '待たずに始める行動の早さがあります。',
+      N: '手順を飛ばしてでも、まず前に進むタイプです。',
+      scenes: ['新しいことへの踏み出しが早く、現場で動きながら考えるのが得意です。仕上げの確認は誰かと分担すると強いです。',
+               '気前がよく、大人数でも自然に盛り上げます。細かい約束は忘れやすいので、メモが助けになります。',
+               '気持ちを大きく表現するタイプです。勢いが空回りしないよう、相手の反応も見てあげてください。',
+               'アウトドアやイベントなど、体を動かす予定が合います。'],
+      str: ['踏み出しが早い', '気前がよい', '大らかで人を安心させる'],
+      cau: ['細部が雑になりやすい', '勢いで量を誤る'],
+      adv: '今日は、仕上げの前にひと呼吸おいてみてください。',
+      cup: 'コクの強い深煎り。多めの湯量にも負けません。' },
+    { name: 'どっしりブラジル型', tag: '長く・早め・そろう', catchy: '安定感で包むタイプ',
+      one: 'ゆったり構えて、ブレずに進める安定感の人。',
+      A: '長めにゆったり注ぎ、量はそろっています。焦らないけれど止まらない落ち着きがあります。',
+      B: '待ちは短く、迷わず次へ進めるので、まわりを落ち着かせる存在になりやすいタイプです。',
+      N: '必要だと思うことだけを、無理なく進める安定感があります。',
+      scenes: ['安定した仕事ぶりで、チームの土台になる人です。急な混乱の中でも落ち着いて見えます。',
+               'いつもの調子で話せる安心感があり、長い付き合いになりやすいです。',
+               '派手さはなくても、一緒にいて落ち着く相手になります。気持ちは言葉にも出すと伝わります。',
+               '家でゆっくり、または慣れた場所でのんびりが合います。'],
+      str: ['安定感がある', '焦らず進められる', '人を落ち着かせる'],
+      cau: ['変化への対応が遅れがち', '自分の意見を言いそびれる'],
+      adv: '今日は、思っていることを一つ言葉にしてみてください。',
+      cup: 'ナッツのような中深煎り。ミルクとも合う一杯。' },
+    { name: '夢見るコナ型', tag: '長く・じっくり・ばらつく', catchy: 'マイペースで味わうタイプ',
+      one: '急がず、過程そのものを味わうマイペースな人。',
+      A: '注ぎはゆったりで、量は毎回変わります。急かされるのが苦手なだけで、淹れる時間そのものを楽しんでいます。',
+      B: '蒸らしもじっくり待てるので、結果より過程を味わうタイプです。',
+      N: '',
+      scenes: ['自分のペースが守れる環境で力を出します。発想や雰囲気づくりで価値を出す人です。',
+               'のんびりした空気で人を和ませます。待ち合わせでは、少し早めの時間を伝えると安心です。',
+               'ゆっくり距離を縮めます。考えごとが多いときは、一言添えると相手が安心します。',
+               '予定を決めすぎず、好きなことに時間を溶かす休日が合います。'],
+      str: ['過程を楽しめる', '発想がやわらかい', '場を和ませる'],
+      cau: ['時間配分がゆるい', '決めるのが遅れやすい'],
+      adv: '今日は、終わりの時刻を先に決めてから始めてみてください。',
+      cup: '軽めの中煎り。時間をかけて冷めるまで楽しめます。' },
+    { name: '儀式のブルーマウンテン型', tag: '長く・じっくり・そろう', catchy: '丁寧さにこだわる完璧主義タイプ',
+      one: '手順も量も整えて、一杯を儀式にする人。',
+      A: '注ぎはゆっくりで、毎回同じ量にそろいます。手順そのものに意味を見出す、几帳面なタイプです。',
+      B: '蒸らしを待つ時間も含めて一杯、と考えていて、少しの乱れにも自分で気づきます。',
+      N: '',
+      scenes: ['手順と品質へのこだわりが強く、仕上がりの精度で信頼される人です。完璧を求めすぎると疲れるので、八割で出す日も作ってください。',
+               '約束や礼儀を大切にします。細やかな気配りで、長く信頼される人です。',
+               '誠実で丁寧に関係を育てます。相手にも同じ丁寧さを求めすぎないのがコツです。',
+               'お気に入りの手順で過ごす時間が、いちばんの回復になります。'],
+      str: ['丁寧で精度が高い', '手順を大切にする', '細部に気づく'],
+      cau: ['完璧を求めて疲れる', '人にも同じ水準を求めがち'],
+      adv: '今日は、仕上がり八割で一度だれかに見せてみてください。',
+      cup: '香りを楽しむ浅〜中煎り。お湯の温度にもこだわれます。' }
+  ];
+
+  var TRAITS = {
+    G: { t: '蒸らし', labels: ['蒸らしなし', '蒸らしあり'], texts: [
+      '蒸らしをしない人は、段取りより結果を取りに行く傾向があります。手順を省いても形にできる自信が、動きの早さにつながっています。',
+      '蒸らしをする人は、手順を踏む大切さを知っている傾向があります。最初のひと手間を惜しまないことが、安定した結果につながりやすいです。'] },
+    H: { t: '蒸らしの量', labels: ['控えめ', '適量', 'たっぷり'], texts: [
+      '蒸らしの量が控えめなのは、様子を見ながら慎重に進める傾向のあらわれです。最初から踏み込みすぎず、リスクを抑えるタイプです。',
+      '蒸らしの量が適量なのは、物事の勘どころをつかんでいる傾向があります。粉15gなら約30mlが目安で、やりすぎず足りなすぎない選び方ができています。',
+      '蒸らしがたっぷりなのは、準備に時間を惜しまない傾向があります。土台を厚くしてから進める安心感を求めるタイプです。'] },
+    I: { t: '総湯量', labels: ['控えめ', 'ぴったり', '多め'], texts: [
+      '総湯量が控えめなのは、無駄を出さず必要な分で足りる、と考える傾向があります。節度があり、ものを大切にするタイプです。',
+      '総湯量が目安に近いのは、全体の見通しを持って進める傾向があります。ゴールを意識して配分できるタイプです。',
+      '総湯量が多めなのは、足りないより余るほうが安心、と考える傾向があります。気前がよく、人にも多く与えるタイプです。'] },
+    J: { t: '目分量の精度', labels: ['几帳面', 'ふつう', 'おおらか'], texts: [
+      '目安とのずれが小さいのは、目分量でも精度を保てる几帳面さの表れです。感覚を数字に近づける力があります。',
+      '目安との差は小さくも大きくもなく、ほどよい精度です。細部にこだわる場面と、流す場面を使い分けられます。',
+      '目安との差が大きいのは、細かい数値よりも気分や感覚を優先するおおらかさの表れです。型にはまらない柔らかさがあります。'] },
+    K: { t: '蒸らしのあとの待ち', labels: ['せっかち', 'ふつう', 'じっくり'], texts: [
+      '蒸らしのあとの待ちが短いのは、結果を早く見たい、せっかちな傾向があります。実際の蒸らしは約30秒が目安なので、一度時計で待ってみると新しい発見があるかもしれません。',
+      '蒸らしのあとの待ちが目安に近いのは、リズム感のよい傾向があります。実際の蒸らしは約30秒が目安で、そこに近い待ち方ができています。',
+      '蒸らしのあとをじっくり待てるのは、忍耐強く、結果を急がない傾向があります。実際の蒸らしは約30秒が目安なので、それ以上待てるのは落ち着きの表れです。'] },
+    L: { t: '注ぐ勢い', labels: ['そっと', 'ふつう', '勢いよく'], texts: [
+      'ケトルを浅く傾けて、そっと注ぐ傾向があります。力を入れすぎず、相手や物事の反応を見ながら進める丁寧さがあります。',
+      'ケトルをほどよく傾けて、安定した勢いで注ぐ傾向があります。強すぎず弱すぎない力加減で、物事に向き合えるタイプです。',
+      'ケトルを深く傾けて、勢いよく注ぐ傾向があります。迷いなく踏み込む力強さがあり、エネルギーを一気に出せるタイプです。'] },
+    E: { t: '注ぎの間隔', labels: ['続けて注ぐ', '一拍置く'], texts: [
+      '注ぎの間隔が短いのは、流れを切らずに一気に進める傾向があります。勢いに乗ると集中が続くタイプです。',
+      '注ぎの間に一拍置くのは、状況を確認してから次へ進む傾向があります。落ち着いて切り替えのできるタイプです。'] },
+    F: { t: 'ペース配分', labels: ['尻すぼみ', '一定', '尻上がり'], texts: [
+      '後半に注ぎが短くなるのは、最初に力を出し切る傾向です。序盤の集中力が高く、終盤は省エネで進めます。',
+      '注ぎの長さが最後まで変わらないのは、ペース配分が安定している傾向です。最後まで同じ調子を保てるタイプです。',
+      '後半に注ぎが長くなるのは、乗ってくるとペースが上がる尻上がりの傾向です。始めはゆっくり、後半に力を出すタイプです。'] },
+    O: { t: '注ぐ回数', labels: ['一気に注ぐ', 'ほどよく分ける', 'こまめに分ける'], texts: [
+      '少ない回数で一気に注ぐ傾向があります。見通しを持って、迷わず決めて進めるタイプです。',
+      '数回に分けて、ほどよく注ぎ足す傾向があります。様子を見ながら、無理なく調整できるタイプです。',
+      '何回にも分けて、こまめに注ぎ足す傾向があります。小さな変化に気づいて、少しずつ整えるタイプです。'] },
+    N: { t: '注ぐ位置', labels: ['一点を狙う', 'ほどよく動かす', '大きく動かす'], texts: [
+      '注ぐ位置をほとんど動かさず、一点を狙う傾向があります。集中力が高く、目標に向かってまっすぐ進むタイプです。',
+      '注ぐ位置を適度に動かし、全体にお湯を行き渡らせる傾向があります。狙いを持ちつつ、周りも見られるタイプです。',
+      '注ぐ位置を大きく動かし、広く回すように注ぐ傾向があります。視野が広く、全体の流れをつくるのが得意なタイプです。'] }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var intro = $('intro'), play = $('play'), result = $('result');
+  var rig = $('rig'), rigbox = $('rigbox'), liquid = $('liquid'), doneBtn = $('done');
+  var kg = $('kg'), flowEl = $('flow'), ripple = $('ripple');
+  var S;
+  var MAX_HOLD = 8, MAX_POURS = 12;
+  var TH = 0.4, DRAG_PX = 100, DRAG_X = 70, MAXTILT = 40, PX = 190, PY = 6, XRANGE = 34, KEYTILT = 0.8;
+  var FLOWGAIN = 2; /* 勢い0.5（やや深く傾けた状態）で、選んだケトルの標準流量になる */
+  var HK = 'drip-kishitsu-history';
+
+  function fresh(flow) {
+    return { grabbing: false, pouring: false, finished: false, flow: flow, ml: 0, events: [],
+             tilt: 0, f: 0, lastT: 0, curSec: 0, curMl: 0, curF: 0, t0: 0, y0: 0, x0: 0, x: 0, sw: 0, sx: 0, sx2: 0, raf: 0, drip: 0, mode: '' };
+  }
+  function fOf(tilt) { return tilt <= TH ? 0 : Math.pow((tilt - TH) / (1 - TH), 1.3); }
+  function setLevel(ml) {
+    var pct = Math.min(100, (ml / C.CAP) * 100);
+    var h = 1.12 * pct;
+    liquid.setAttribute('y', 262 - h);
+    liquid.setAttribute('height', h);
+  }
+  function pose(tilt, f, anim) {
+    var th = MAXTILT * tilt, rad = th * Math.PI / 180;
+    var ox = PX + S.x * XRANGE;
+    kg.style.transition = anim ? 'transform .35s ease-out' : 'none';
+    kg.style.transform = 'translate(' + ox.toFixed(1) + 'px,' + PY + 'px) rotate(' + (-th).toFixed(1) + 'deg)';
+    var tx = ox + (-82 * Math.cos(rad) + 12 * Math.sin(rad));
+    var ty = PY + (82 * Math.sin(rad) + 12 * Math.cos(rad));
+    flowEl.setAttribute('d', 'M' + tx.toFixed(1) + ' ' + (ty + 1).toFixed(1) + ' V 74');
+    flowEl.setAttribute('stroke-width', (2 + 4.5 * f).toFixed(1));
+    ripple.setAttribute('cx', tx.toFixed(1));
+    ripple.setAttribute('rx', (3 + 9 * f).toFixed(1));
+    rigbox.classList.toggle('pouring', f > 0);
+  }
+  function sec(v) { return v.toFixed(1) + '秒'; }
+  function mlf(v) { return Math.round(v) + ' ml'; }
+
+  var HINT0 = 'ケトルをつかんで、下へドラッグして傾けます。深く傾けるほど勢いよく出て、左右にドラッグすると注ぐ位置が動きます。離すと止まります。蒸らしをするか、何回に分けるか、どれくらい待つかは自由です。サーバーの目盛りを見ながら、1杯分（200ml）を目安に。';
+  var HINT1 = '続けて注いでも、しばらく待ってから注いでも構いません。淹れ終わったら「完了」を押してください。';
+
+  function render() {
+    var hint = $('hint');
+    hint.textContent = S.events.length ? HINT1 : HINT0;
+    hint.classList.remove('warn');
+    rigbox.setAttribute('aria-pressed', S.grabbing ? 'true' : 'false');
+    rigbox.classList.toggle('holding', S.grabbing);
+    doneBtn.disabled = S.grabbing || S.events.length === 0;
+  }
+
+  // 前回の更新からの時間ぶん、いまの傾きで注いだ量を積み上げる
+  function advance(now) {
+    var dt = Math.max(0, (now - S.lastT) / 1000);
+    S.lastT = now;
+    if (S.grabbing && S.f > 0) {
+      var room = MAX_HOLD - S.curSec;
+      if (dt > room) { dt = Math.max(0, room); }
+      S.curSec += dt;
+      S.curMl += S.flow * FLOWGAIN * S.f * dt;
+      S.curF += S.f * dt;
+      S.sw += dt; S.sx += S.x * dt; S.sx2 += S.x * S.x * dt;
+    }
+    setLevel(S.ml + S.curMl);
+  }
+
+  function setTilt(tilt, now) {
+    if (!S.grabbing) { return; }
+    advance(now);
+    S.tilt = Math.max(0, Math.min(1, tilt));
+    S.f = fOf(S.tilt);
+    if (S.f > 0 && !S.pouring) {
+      S.pouring = true;
+      S.t0 = now;
+      clearTimeout(S.drip);
+      rigbox.classList.remove('dripping');
+      if (S.events.length) { rigbox.classList.remove('rising'); }
+    }
+    pose(S.tilt, S.f, false);
+  }
+
+  function tick() {
+    if (!S.grabbing) { return; }
+    advance(performance.now());
+    if (S.curSec >= MAX_HOLD) { release(); return; }
+    S.raf = requestAnimationFrame(tick);
+  }
+
+  function grab(y, now, x) {
+    if (S.grabbing || S.finished) { return; }
+    if (S.events.length >= MAX_POURS) {
+      var hm = $('hint');
+      hm.textContent = 'これ以上は注げません。「完了」を押してください。';
+      hm.classList.add('warn');
+      return;
+    }
+    S.grabbing = true;
+    S.pouring = false;
+    S.y0 = y; S.x0 = x || 0; S.x = 0; S.lastT = now; S.curSec = 0; S.curMl = 0; S.curF = 0; S.tilt = 0; S.f = 0;
+    render();
+    tick();
+  }
+
+  function release() {
+    if (!S.grabbing) { return; }
+    var now = performance.now();
+    advance(now);
+    cancelAnimationFrame(S.raf);
+    var wasPouring = S.pouring, dur = S.curSec;
+    S.grabbing = false; S.tilt = 0; S.f = 0; S.x = 0;
+    pose(0, 0, true);
+    if (dur < 0.15) {
+      setLevel(S.ml);
+      S.curMl = 0; S.curSec = 0; S.curF = 0;
+      render();
+      var h = $('hint');
+      h.textContent = wasPouring ? '短すぎて測れません。もう少し長く傾けて注いでください。' : 'まだお湯が出ていません。ケトルをもっと深く傾けてください。';
+      h.classList.add('warn');
+      return;
+    }
+    var ml = S.curMl, force = S.curF / dur;
+    S.ml += ml;
+    setLevel(S.ml);
+    rigbox.classList.add('dripping');
+    S.drip = setTimeout(function () { rigbox.classList.remove('dripping'); }, 1400);
+    S.events.push({ t0: S.t0, t1: now, sec: dur, ml: ml, force: force });
+    rigbox.classList.toggle('rising', S.events.length === 1 && ml <= C.BLOOM_MAX);
+    S.curMl = 0; S.curSec = 0; S.curF = 0;
+    render();
+  }
+
+  rigbox.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    try { rigbox.setPointerCapture(e.pointerId); } catch (_) {}
+    S.mode = 'drag';
+    grab(e.clientY, performance.now(), e.clientX);
+  });
+  rigbox.addEventListener('pointermove', function (e) {
+    if (!S.grabbing || S.mode !== 'drag') { return; }
+    var now = performance.now();
+    advance(now);
+    S.x = Math.max(-1, Math.min(1, (e.clientX - S.x0) / DRAG_X));
+    setTilt((e.clientY - S.y0) / DRAG_PX, now);
+  });
+  rigbox.addEventListener('pointerup', release);
+  rigbox.addEventListener('pointercancel', release);
+  rigbox.addEventListener('lostpointercapture', release);
+  rigbox.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  rigbox.addEventListener('keydown', function (e) {
+    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+      e.preventDefault();
+      S.mode = 'key';
+      var now = performance.now();
+      grab(0, now, 0);
+      setTilt(KEYTILT, now);
+      return;
+    }
+    if (S.grabbing && S.mode === 'key') {
+      var mv = { ArrowUp: [0, -0.08], ArrowDown: [0, 0.08], ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0] }[e.key];
+      if (mv) {
+        e.preventDefault();
+        var t2 = performance.now();
+        advance(t2);
+        S.x = Math.max(-1, Math.min(1, S.x + mv[0]));
+        setTilt(S.tilt + mv[1], t2);
+      }
+    }
+  });
+  rigbox.addEventListener('keyup', function (e) {
+    if ((e.key === ' ' || e.key === 'Enter') && S.mode === 'key') { e.preventDefault(); release(); }
+  });
+  doneBtn.addEventListener('click', function () {
+    if (S.finished || S.grabbing || !S.events.length) { return; }
+    S.finished = true;
+    showResult();
+  });
+
+  function begin() {
+    var sel = document.querySelector('input[name="kettle"]:checked');
+    var flow = sel ? parseFloat(sel.value) : 15;
+    if (!(flow > 0)) { flow = 15; }
+    S = fresh(flow);
+    setLevel(0);
+    rigbox.classList.remove('pouring', 'dripping', 'rising', 'holding');
+    pose(0, 0, false);
+    intro.hidden = true; result.hidden = true; play.hidden = false;
+    render();
+    window.scrollTo(0, 0);
+  }
+  $('start').addEventListener('click', begin);
+
+  /* ---------- result helpers ---------- */
+  function meter(label, val, pos, tickPos, left, right, note) {
+    return '<div class="meter"><div class="m-head"><span>' + label + '</span><span class="mono">' + val + '</span></div>' +
+      '<div class="track"><i class="fill" style="width:' + (pos * 100).toFixed(1) + '%"></i><span class="tick" style="left:' + (tickPos * 100).toFixed(1) + '%"></span></div>' +
+      '<div class="m-ends"><span>' + left + '</span><span>' + right + '</span></div>' +
+      '<p class="m-note">' + note + '</p></div>';
+  }
+
+  function axisList(r, skipped) {
+    return [
+      { l: 'ペース', v: r.axes.pace }, { l: '忍耐', v: r.axes.patience, s: skipped ? '蒸らしなし' : '' },
+      { l: '安定', v: r.axes.stability }, { l: '間', v: r.axes.gap },
+      { l: '大胆さ', v: r.axes.bold, s: skipped ? '蒸らしなし' : '' },
+      { l: '気前', v: r.axes.generous }, { l: '几帳面さ', v: r.axes.precise },
+      { l: '動き', v: r.axes.move }
+    ];
+  }
+
+  function radar(axes) {
+    var cx = 180, cy = 165, R = 100, n = axes.length;
+    function pt(i, k) {
+      var a = -Math.PI / 2 + i * 2 * Math.PI / n;
+      return [cx + Math.cos(a) * R * k, cy + Math.sin(a) * R * k, Math.cos(a), Math.sin(a)];
+    }
+    function poly(k) {
+      var s = [];
+      for (var i = 0; i < n; i++) { var p = pt(i, k); s.push(p[0].toFixed(1) + ',' + p[1].toFixed(1)); }
+      return s.join(' ');
+    }
+    var svg = '<svg viewBox="0 0 360 330" role="img" aria-label="8つの軸のレーダーチャート">';
+    [0.25, 0.5, 0.75, 1].forEach(function (k) { svg += '<polygon class="ring" points="' + poly(k) + '"/>'; });
+    var i, p;
+    for (i = 0; i < n; i++) { p = pt(i, 1); svg += '<line class="spoke" x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '"/>'; }
+    var d = [];
+    for (i = 0; i < n; i++) { p = pt(i, Math.max(0.02, axes[i].v)); d.push(p[0].toFixed(1) + ',' + p[1].toFixed(1)); }
+    svg += '<polygon class="area" points="' + d.join(' ') + '"/>';
+    for (i = 0; i < n; i++) { p = pt(i, Math.max(0.02, axes[i].v)); svg += '<circle class="dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; }
+    for (i = 0; i < n; i++) {
+      p = pt(i, 1.2);
+      var anchor = p[2] > 0.3 ? 'start' : (p[2] < -0.3 ? 'end' : 'middle');
+      var y = p[3] < -0.9 ? p[1] - 4 : (p[3] > 0.5 ? p[1] + 8 : p[1] + 2);
+      svg += '<text x="' + p[0].toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '">' + axes[i].l + '</text>';
+      svg += '<text class="v" x="' + p[0].toFixed(1) + '" y="' + (y + 13).toFixed(1) + '" text-anchor="' + anchor + '">' + Math.round(axes[i].v * 100) + '</text>';
+      if (axes[i].s) { svg += '<text class="s" x="' + p[0].toFixed(1) + '" y="' + (y + 25).toFixed(1) + '" text-anchor="' + anchor + '">' + axes[i].s + '</text>'; }
+    }
+    return svg + '</svg>';
+  }
+
+  function volumeChart(r, skipped) {
+    var segs = [];
+    if (!skipped) { segs.push({ l: '蒸らし', ml: r.bloomMl, c: 'var(--warm)' }); }
+    r.poursMl.forEach(function (m, i) { segs.push({ l: '注ぎ' + (i + 1), ml: m, c: i % 2 === 0 ? 'var(--accent)' : 'var(--water)' }); });
+    var maxMl = Math.max(300, Math.ceil(r.totalMl / 50) * 50);
+    var x0 = 20, w = 320;
+    function X(ml) { return x0 + w * ml / maxMl; }
+    var svg = '<svg viewBox="0 0 360 100" role="img" aria-label="湯量の内訳を示す横棒グラフ">';
+    var acc = 0;
+    segs.forEach(function (s) {
+      svg += '<rect class="seg" x="' + X(acc).toFixed(1) + '" y="30" width="' + Math.max(0.5, X(acc + s.ml) - X(acc)).toFixed(1) + '" height="28" fill="' + s.c + '"/>';
+      acc += s.ml;
+    });
+    svg += '<line class="axis" x1="' + x0 + '" y1="64" x2="' + (x0 + w) + '" y2="64"/>';
+    for (var m = 0; m <= maxMl; m += 100) {
+      svg += '<line class="axis" x1="' + X(m).toFixed(1) + '" y1="64" x2="' + X(m).toFixed(1) + '" y2="69"/>';
+      svg += '<text x="' + X(m).toFixed(1) + '" y="82" text-anchor="middle">' + m + '</text>';
+    }
+    svg += '<line class="goal" x1="' + X(C.TARGET).toFixed(1) + '" y1="22" x2="' + X(C.TARGET).toFixed(1) + '" y2="64"/>';
+    svg += '<text class="g" x="' + X(C.TARGET).toFixed(1) + '" y="16" text-anchor="middle">目安 200ml</text>';
+    svg += '<text x="' + (x0 + w) + '" y="96" text-anchor="end">ml</text>';
+    svg += '</svg>';
+    var lg = '<ul class="legend">';
+    segs.forEach(function (s) { lg += '<li><i style="background:' + s.c + '"></i>' + s.l + ' ' + mlf(s.ml) + '</li>'; });
+    return svg + lg + '</ul>';
+  }
+
+  function trait(key, val, skippedText) {
+    var T = TRAITS[key];
+    if (val < 0) {
+      return '<div class="trait"><div class="tt">' + T.t + '</div><span class="pill off">なし</span><p>' + skippedText + '</p></div>';
+    }
+    return '<div class="trait"><div class="tt">' + T.t + '</div><span class="pill">' + T.labels[val] + '</span><p>' + T.texts[val] + '</p></div>';
+  }
+
+  function diffWord(diff, total) {
+    var d = Math.round(total - C.TARGET);
+    if (Math.abs(diff) <= C.DIFF_T) { return '目安200mlに近い量（' + (d >= 0 ? '+' : '−') + Math.abs(d) + 'ml）'; }
+    return '目安200mlより ' + Math.abs(d) + 'ml ' + (d > 0 ? '多め' : '控えめ');
+  }
+
+  function saveHistory(entry) {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(HK) || '[]'); if (!Array.isArray(list)) { list = []; } } catch (_) { list = []; }
+    list.unshift(entry);
+    list = list.slice(0, 5);
+    try { localStorage.setItem(HK, JSON.stringify(list)); } catch (_) {}
+    return list;
+  }
+
+  function fmtDate(t) {
+    try { return new Date(t).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch (_) { return ''; }
+  }
+
+  /* ---------- result ---------- */
+  function showResult() {
+    var dv = derive(S.events);
+    var skipped = dv.skipped;
+    var xm = S.sw > 0 ? S.sx / S.sw : 0;
+    var xv = S.sw > 0 ? Math.max(0, S.sx2 / S.sw - xm * xm) : 0;
+    var d = { wander: Math.sqrt(xv), bloom: dv.bloom, bloomMl: dv.bloomMl, skipped: skipped, wait: dv.wait, pours: dv.pours, poursMl: dv.poursMl, forces: dv.forces, gaps: dv.gaps, flow: S.flow };
+    var r = classify(d);
+    var t = TYPES[r.idx];
+    var best = TYPES[r.idx ^ 2], stim = TYPES[r.idx ^ 7];
+    var cvPct = Math.round(r.cv * 100);
+    var axes = axisList(r, skipped);
+    var back = skipped ? (t.N || '') : t.B;
+
+    var meters = '';
+    meters += meter('注ぎの長さ', r.mean.toFixed(1) + ' 秒', clamp01((r.mean - 0.5) / 3.5), (C.PACE_T - 0.5) / 3.5, '短め', '長め',
+      '本注ぎ' + r.count + '回の平均です。境目は ' + C.PACE_T.toFixed(1) + ' 秒で、あなたは' + (r.longPour ? '長め' : '短め') + '側でした。');
+    meters += meter('待ち時間', skipped ? 'なし' : dv.wait.toFixed(1) + ' 秒', skipped ? 0 : clamp01(dv.wait / 40), C.WAIT_T / 40, 'せっかち', 'じっくり',
+      skipped ? '蒸らしとして読み取れる注ぎがなかったため、待ち時間は測っていません（早め側として扱います）。'
+              : '蒸らしのあと、次の注ぎを始めるまでの時間です。境目は ' + C.WAIT_T + ' 秒で、あなたは' + (r.longWait ? 'じっくり' : '早め') + '側でした。実際の蒸らしは約30秒が目安です。');
+    meters += meter('注ぐ勢い', Math.round(r.force * 100) + ' / 100', r.force, C.FORCE_LO, 'そっと', '勢いよく',
+      'ケトルを傾けた深さの平均です（注いでいる間だけ）。' + Math.round(C.FORCE_LO * 100) + ' 未満はそっと、' + Math.round(C.FORCE_HI * 100) + ' 以上は勢いよく、その間はふつうです。あなたは' + TRAITS.L.labels[r.L] + '側でした。');
+    meters += meter('注ぎのそろい方', '±' + cvPct + ' %', r.axes.stability, 1 - C.CV_T / 0.6, 'ばらつく', 'そろう',
+      r.count + '回の注ぎ時間のばらつきです。境目は ±' + Math.round(C.CV_T * 100) + ' % で、あなたは' + (r.steady ? 'そろう' : 'ばらつく') + '側でした。');
+
+    var traits1 = trait('G', r.G) + trait('H', r.H, '蒸らしとして読み取れる注ぎがなかったため、蒸らしの量は見ていません。') +
+      trait('I', r.I) + trait('J', r.J) + trait('K', r.K, '蒸らしとして読み取れる注ぎがなかったため、待ちは見ていません。');
+    var traits2 = trait('O', r.O) + trait('L', r.L) + trait('N', r.N) +
+      trait('E', r.E, '注ぎが1回だったため、注ぎの間隔は見ていません。') + trait('F', r.F, '注ぎが1回だったため、ペース配分は見ていません。');
+
+    var sceneNames = ['仕事', '友人関係', '恋愛', '休日の過ごし方'];
+    var scenes = '';
+    for (var i = 0; i < 4; i++) { scenes += '<div class="card"><h4>' + sceneNames[i] + '</h4><p>' + t.scenes[i] + '</p></div>'; }
+
+    var all = '';
+    for (var j = 0; j < TYPES.length; j++) {
+      all += '<li><b>' + TYPES[j].name + '</b>' + (j === r.idx ? '<em>あなた</em>' : '') + '<span>' + TYPES[j].tag + '</span></li>';
+    }
+
+    var list = saveHistory({ t: Date.now(), n: t.name, ml: Math.round(r.totalMl), sk: skipped });
+    var hist = '';
+    if (list.length > 1) {
+      hist = '<details><summary>これまでの結果（最新' + list.length + '件）</summary><ul class="hist">';
+      list.forEach(function (h) {
+        hist += '<li><span class="mono">' + fmtDate(h.t) + '</span><b>' + h.n + '</b><span class="mono">' + h.ml + ' ml' + (h.sk ? ' · 蒸らしなし' : '') + '</span></li>';
+      });
+      hist += '</ul></details>';
+    }
+
+    var secs = dv.pours.map(function (p) { return p.toFixed(1); }).join(' / ');
+    var mls = r.poursMl.map(function (m) { return Math.round(m); }).join(' / ');
+    var gaps = dv.gaps.length ? dv.gaps.map(function (g) { return g.toFixed(1); }).join(' / ') : 'なし';
+    var total = S.events.length ? (S.events[S.events.length - 1].t1 - S.events[0].t0) / 1000 : 0;
+
+    function pg(title, inner) { return '<div class="page"><h3 class="pg-t">' + title + '</h3>' + inner + '</div>'; }
+    var pagesHtml = [
+      '<div class="page"><div class="cols2"><div class="res-head"><div class="kicker">あなたのドリップ気質</div>' +
+        '<h2 class="name display">' + t.name + '</h2><p class="catch">' + t.catchy + '</p><p class="one">' + t.one + '</p></div>' +
+        '<p class="res-body">' + t.A + back + '</p></div>' +
+        '<p class="scrollhint">下にスクロールすると、続きが見られます</p></div>',
+
+      pg('気質レーダー', '<div class="cols2"><div class="radar">' + radar(axes) + '</div>' +
+        '<p class="note">各軸は0〜100で表しています。大胆さは蒸らしの量、気前は総湯量、几帳面さは目安200mlとの近さ、動きは注ぐ位置を左右に動かした量です。</p></div>'),
+
+      pg('主軸と注ぐ勢い', '<div class="meters">' + meters + '</div>'),
+
+      pg('湯量レポート', '<div class="vol">' + volumeChart(r, skipped) + '</div>' +
+        '<p class="total">合計 ' + mlf(r.totalMl) + '（' + diffWord(r.diff, r.totalMl) + '）</p>' +
+        '<p class="note">傾けた深さと時間、ケトルの最大流量（' + S.flow + ' ml/秒）から計算した推定値です。実際の量とは異なります。</p>'),
+
+      pg('蒸らしと湯量の気質', '<div class="cols2">' + traits1 + '</div>' +
+        '<p class="note">最初の注ぎが ' + C.BLOOM_MAX + 'ml 以下で、そのあと ' + C.BLOOM_GAP + ' 秒以上あけて注いだ場合を、蒸らしとして読み取っています。</p>'),
+
+      pg('注ぎ方のくせ', '<div class="cols2">' + traits2 + '</div>'),
+
+      pg('場面別の傾向', '<div class="cards">' + scenes + '</div>'),
+
+      pg('強みと気をつけたい点', '<div class="cards">' +
+        '<div class="card"><h4>強み</h4><ul>' + t.str.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="card"><h4>気をつけたい点</h4><ul>' + t.cau.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="card"><h4>今日のひとこと</h4><p class="adv">' + t.adv + '</p></div></div>'),
+
+      pg('合う一杯と相性', '<div class="cards">' +
+        '<div class="card"><h4>合う一杯</h4><p>' + t.cup + '</p></div>' +
+        '<div class="card"><h4>ベスト相性</h4><p><b>' + best.name + '</b><br>' + best.catchy + '</p><p class="note">注ぎ方とそろい方は似ていて、待ち方だけが違います。お互いのペースを補い合いやすい組み合わせです。</p></div>' +
+        '<div class="card"><h4>刺激をくれる相手</h4><p><b>' + stim.name + '</b><br>' + stim.catchy + '</p><p class="note">注ぎ・待ち・そろい方がすべて逆です。違いが多いぶん、新しい発見をくれる相手です。</p></div></div>'),
+
+      pg('今回の記録', '<dl class="rec">' +
+        '<dt>蒸らし</dt><dd>' + (skipped ? 'なし' : 'あり ' + mlf(r.bloomMl) + '（' + sec(dv.bloom) + '）') + '</dd>' +
+        '<dt>待ち</dt><dd>' + (skipped ? 'なし' : sec(dv.wait)) + '</dd>' +
+        '<dt>注ぎの回数</dt><dd>' + r.count + ' 回</dd>' +
+        '<dt>全体の所要時間</dt><dd>' + sec(total) + '</dd>' +
+        '<dt>注ぎ（秒）</dt><dd>' + secs + '</dd>' +
+        '<dt>注ぎ（ml）</dt><dd>' + mls + '</dd>' +
+        '<dt>注ぐ勢い（0〜100）</dt><dd>' + dv.forces.map(function (f) { return Math.round(f * 100); }).join(' / ') + '</dd>' +
+        '<dt>注ぎの間隔（秒）</dt><dd>' + gaps + '</dd>' +
+        '<dt>注ぐ位置のゆれ（0〜100）</dt><dd>' + Math.round(r.wander * 100) + '</dd>' +
+        '<dt>総湯量</dt><dd>' + mlf(r.totalMl) + '（推定）</dd>' +
+        '<dt>ケトル（最大流量）</dt><dd>' + S.flow + ' ml/秒</dd></dl>' +
+        '<div class="actions">' +
+          '<button class="btn" id="again" type="button">もう一杯淹れる</button>' +
+          '<button class="btn ghost" id="copy" type="button">結果をコピー</button>' +
+          '<button class="btn ghost" id="img" type="button">結果を画像にする</button></div>' +
+        '<p class="toast" id="toast" aria-live="polite"></p>' +
+        '<div class="imgbox" id="imgbox" hidden></div>' +
+        '<details><summary>8つのタイプを見る</summary><ul class="all">' + all + '</ul></details>' +
+        hist +
+        '<p class="note">豆の名前はイメージで付けています。湯量は傾けた深さと時間からの推定です。傾け具合は画面上の操作から測っています。娯楽用の診断で、味や性格を保証するものではありません。</p>')
+    ];
+    result.innerHTML = '<div class="pages">' + pagesHtml.join('') + '</div>';
+
+    play.hidden = true; intro.hidden = true; result.hidden = false;
+    window.scrollTo(0, 0);
+
+    $('again').addEventListener('click', begin);
+    var txt = 'ドリップ気質診断の結果は「' + t.name + '」でした。' +
+      (skipped ? '蒸らしなし' : '蒸らし' + Math.round(r.bloomMl) + 'ml・待ち' + dv.wait.toFixed(1) + '秒') + '、注ぎ' + r.count + '回' +
+      '、総湯量' + Math.round(r.totalMl) + 'ml（推定）、注ぎ平均' + r.mean.toFixed(1) + '秒。';
+    $('copy').addEventListener('click', function () {
+      var toast = $('toast');
+      function ok() { toast.textContent = 'コピーしました。'; }
+      function ng() {
+        var ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); ok(); } catch (_) { toast.textContent = txt; }
+        document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(ok, ng);
+      } else { ng(); }
+    });
+    $('img').addEventListener('click', function () { makeImage(t, r, axes, skipped); });
+  }
+
+  /* ---------- result image ---------- */
+  function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function wrap(ctx, text, x, y, maxW, lh) {
+    var line = '';
+    for (var k = 0; k < text.length; k++) {
+      var tst = line + text.charAt(k);
+      if (ctx.measureText(tst).width > maxW && line) { ctx.fillText(line, x, y); line = text.charAt(k); y += lh; }
+      else { line = tst; }
+    }
+    ctx.fillText(line, x, y);
+    return y + lh;
+  }
+  function makeImage(t, r, axes, skipped) {
+    var box = $('imgbox'), toast = $('toast');
+    var go = function () {
+      try {
+        var W = 720, H = 1000, cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        var ctx = cv.getContext('2d');
+        var bg = cssv('--bg') || '#f2f3ef', fg = cssv('--fg') || '#1f1a17', muted = cssv('--muted') || '#6b635d';
+        var line = cssv('--line') || '#d8d9d1', acc = cssv('--accent') || '#1f6f68', warm = cssv('--warm') || '#b9772f';
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.strokeRect(24, 24, W - 48, H - 48);
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = muted; ctx.font = '500 18px "IBM Plex Mono", monospace';
+        ctx.fillText('HAND DRIP TEMPERAMENT', 60, 80);
+        ctx.fillStyle = fg; ctx.font = '48px "Dela Gothic One", "Zen Kaku Gothic New", sans-serif';
+        var y = wrap(ctx, t.name, 60, 150, W - 120, 62);
+        ctx.fillStyle = acc; ctx.font = '700 26px "Zen Kaku Gothic New", sans-serif';
+        y = wrap(ctx, t.catchy, 60, y + 4, W - 120, 38);
+        ctx.fillStyle = muted; ctx.font = '400 22px "Zen Kaku Gothic New", sans-serif';
+        wrap(ctx, t.one, 60, y + 2, W - 120, 34);
+        var cx = W / 2, cy = 570, R = 160, n = axes.length;
+        function P(i, k) { var a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + Math.cos(a) * R * k, cy + Math.sin(a) * R * k, Math.cos(a), Math.sin(a)]; }
+        ctx.strokeStyle = line; ctx.lineWidth = 1.5;
+        [0.25, 0.5, 0.75, 1].forEach(function (k) {
+          ctx.beginPath();
+          for (var i = 0; i < n; i++) { var p = P(i, k); if (i === 0) { ctx.moveTo(p[0], p[1]); } else { ctx.lineTo(p[0], p[1]); } }
+          ctx.closePath(); ctx.stroke();
+        });
+        ctx.beginPath();
+        for (var i = 0; i < n; i++) { var q = P(i, Math.max(0.02, axes[i].v)); if (i === 0) { ctx.moveTo(q[0], q[1]); } else { ctx.lineTo(q[0], q[1]); } }
+        ctx.closePath(); ctx.globalAlpha = 0.28; ctx.fillStyle = acc; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke();
+        ctx.font = '500 22px "Zen Kaku Gothic New", sans-serif';
+        for (i = 0; i < n; i++) {
+          var lp = P(i, 1.22);
+          ctx.textAlign = lp[2] > 0.3 ? 'left' : (lp[2] < -0.3 ? 'right' : 'center');
+          ctx.fillStyle = fg; ctx.fillText(axes[i].l, lp[0], lp[1] + (lp[3] > 0.5 ? 14 : 4));
+          ctx.fillStyle = warm; ctx.font = '500 18px "IBM Plex Mono", monospace';
+          ctx.fillText(String(Math.round(axes[i].v * 100)), lp[0], lp[1] + (lp[3] > 0.5 ? 38 : 28));
+          ctx.font = '500 22px "Zen Kaku Gothic New", sans-serif';
+        }
+        ctx.textAlign = 'left';
+        var stats = [['総湯量（推定）', Math.round(r.totalMl) + ' ml'], ['蒸らし', skipped ? 'なし' : Math.round(r.bloomMl) + ' ml'],
+                     ['待ち', skipped ? 'なし' : (r.wait.toFixed(1) + ' 秒')], ['注ぎ平均', r.mean.toFixed(1) + ' 秒']];
+        var sw = (W - 120) / 4;
+        for (var s = 0; s < 4; s++) {
+          ctx.fillStyle = muted; ctx.font = '400 16px "Zen Kaku Gothic New", sans-serif';
+          ctx.fillText(stats[s][0], 60 + sw * s, 858);
+          ctx.fillStyle = fg; ctx.font = '500 26px "IBM Plex Mono", monospace';
+          ctx.fillText(stats[s][1], 60 + sw * s, 896);
+        }
+        ctx.fillStyle = muted; ctx.font = '400 15px "Zen Kaku Gothic New", sans-serif';
+        ctx.fillText('娯楽用の診断です。湯量は推定です。', 60, 950);
+        var url = cv.toDataURL('image/png');
+        box.innerHTML = '<img alt="診断結果の画像" src="' + url + '"><p class="note">画像を長押し（パソコンは右クリック）して保存してください。</p>';
+        box.hidden = false;
+        toast.textContent = '';
+      } catch (err) {
+        toast.textContent = '画像を作れませんでした。「結果をコピー」で文章を保存してください。';
+      }
+    };
+    try {
+      Promise.all([document.fonts.load('40px "Dela Gothic One"'), document.fonts.load('700 20px "Zen Kaku Gothic New"'), document.fonts.load('500 20px "IBM Plex Mono"')]).then(go, go);
+    } catch (_) { go(); }
+  }
+})();
+</script>
+
+</body></html>
